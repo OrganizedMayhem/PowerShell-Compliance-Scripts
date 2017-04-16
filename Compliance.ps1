@@ -1,6 +1,5 @@
 ##This script backs up registry hives before any keys are added or updated and then sets the recommended values to meet HIPAA compliance##
-#Line 3334 starts Additional Changes
-#clemkdir C:\Backup-Script
+mkdir C:\Backup-Script
 
 #reg export HKLM\Software C:\Backup-Script\SystemBackup.reg
 #Creates Green HIPAA Directory for Reg Backups
