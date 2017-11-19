@@ -16,11 +16,11 @@ function IfThenStatement ()
         }
 Else
         {
+            Get-ChildItem -Path HKLM:\
             Set-ItemProperty -Path $registrypath -Name $name -Value $value
         }
 
 }
-
 
 ## 1.21 1198  Audit: Audit the use of backup and restore privilege setting (Critical)
 $registrypath = "HKLM:/SYSTEM/CurrentControlSet/Control/Lsa"
