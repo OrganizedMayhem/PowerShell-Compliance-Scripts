@@ -16,7 +16,6 @@ function SetKeys ()
         }
 Else
         {
-            Get-ChildItem -Path HKLM:\
             Set-ItemProperty -Path $registrypath -Name $name -Value $value
         }
 
