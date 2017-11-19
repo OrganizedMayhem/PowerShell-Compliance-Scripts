@@ -16,6 +16,7 @@ function SetKeys ()
         }
 Else
         {
+            
             Set-ItemProperty -Path $registrypath -Name $name -Value $value
         }
 
