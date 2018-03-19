@@ -7,6 +7,8 @@ mkdir C:\Backup-Script
 
 #Backs Up Registry before changes are made
 
+#Backs Up Registry before changes are made
+
 function SetKeys ()
 {
     If(-not(Test-Path -Path $registrypath))
@@ -14,10 +16,18 @@ function SetKeys ()
             New-Item -Path $registrypath
             New-ItemProperty -Path $registrypath -Name $name -Value $value
         }
-Else
-        {
-            
+    Else
+        {  
+        $CurrentValue = Get-ItemPropertyValue -Path $registrypath -Name $name
+        Write-Host $CurrentValue
+          If ($CurrentValue -ne $value)
+            {
+            Write-Host "The value for " + $registrypath + ":" + $name + " has been changed from" + $CurrentValue + " to " + $value
             Set-ItemProperty -Path $registrypath -Name $name -Value $value
+            }
+          Else
+            {
+            }
         }
 
 }
