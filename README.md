@@ -42,7 +42,8 @@ a Qualys finding against the exact setting this script applies for it.
    run.
 5. **Reports results.** The script returns one object per unique registry location it touched,
    with `Controls` (all Qualys IDs satisfied by that write), `RegistryPath`, `Name`, `Value`,
-   `Status` (`Applied`/`Failed`), and `Error`.
+   `Status` (`Applied`/`WhatIf`/`Failed` — `WhatIf` means the change was only previewed, nothing
+   was actually written), and `Error`.
 
 ## Requirements
 
@@ -85,6 +86,7 @@ pipeline.
 | ------------- | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
 | `-BackupPath` | `C:\Backup-Script` | Directory the pre-change `.reg` backups are written to.                                                                             |
 | `-Control`    | _(all enabled)_    | One or more `Control` values to restrict the run to. Useful for remediating a single Qualys finding without touching anything else. |
+| `-LogPath`    | _(none)_           | Optional CSV file to write the result objects to, for an audit trail. Skipped under `-WhatIf` since nothing was actually changed.   |
 
 ## Adding or changing a control
 

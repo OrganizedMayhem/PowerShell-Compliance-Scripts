@@ -161,7 +161,9 @@ Describe 'Compliance.ps1' {
             $results.Count | Should -BeGreaterThan 0
             foreach ($r in $results) {
                 $r.PSObject.Properties.Name | Should -Contain 'Status'
-                $r.Status | Should -BeIn @('Applied', 'Failed')
+                # Nothing is actually written under -WhatIf, so every result should be
+                # 'WhatIf' (previewed only), never 'Applied'.
+                $r.Status | Should -BeIn @('WhatIf', 'Failed')
             }
         }
 
