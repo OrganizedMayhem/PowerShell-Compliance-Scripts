@@ -1,5 +1,7 @@
 # PowerShell-Compliance-Scripts
 
+[![CI](https://github.com/OrganizedMayhem/PowerShell-Compliance-Scripts/actions/workflows/ci.yml/badge.svg)](https://github.com/OrganizedMayhem/PowerShell-Compliance-Scripts/actions/workflows/ci.yml)
+
 `Compliance.ps1` applies a set of Windows registry settings recommended for HIPAA-related
 hardening. The control numbers referenced throughout the script (e.g. `21.83 1387`) are
 references to the **Qualys Compliance scanner's** policy/control IDs, so you can cross-check
@@ -131,6 +133,21 @@ The suite covers:
   enforces that regardless of `-WhatIf`) and are **skipped automatically** when not running as
   Administrator, rather than failing.
 
+## Continuous integration
+
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs on every push and pull request
+against `main` (and can be triggered manually via `workflow_dispatch`), on `windows-latest`:
+
+1. Installs Pester 5+ and PSScriptAnalyzer.
+2. Runs PSScriptAnalyzer across `Compliance.ps1` and `tests/`, failing the build only on
+   `Error`-severity findings (style `Warning`s are surfaced in the log but don't block).
+3. Runs the Pester suite and publishes `TestResults.xml` (NUnit format) as a build artifact.
+4. Runs `Compliance.ps1 -WhatIf -Verbose` as a smoke test, so a syntax or logic regression in
+   the control data shows up immediately. This step checks whether the runner is elevated first
+   and skips with a clear message if not, since the script's `#requires -RunAsAdministrator`
+   applies even under `-WhatIf`.
+
 ## License
 
 See [`LICENSE`](LICENSE) (CC0 1.0 Universal — public domain).
+
