@@ -1,0 +1,125 @@
+name: PowerShell CI (reusable)
+
+on:
+  workflow_call:
+    inputs:
+      pester-version:
+        description: Minimum Pester version to install and run tests with
+        type: string
+        default: '5.5.0'
+      test-path:
+        description: Path to the Pester test file(s) or directory
+        type: string
+        default: 'tests/'
+      analyzer-path:
+        description: Path PSScriptAnalyzer should scan
+        type: string
+        default: '.'
+      run-smoke-test:
+        description: Whether to run the smoke-test job
+        type: boolean
+        default: true
+      smoke-test-script:
+        description: Script to smoke test with -WhatIf -Verbose
+        type: string
+        default: '.\Compliance.ps1'
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Lint (PSScriptAnalyzer)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Cache PSScriptAnalyzer module
+        id: cache-analyzer
+        uses: actions/cache@v4
+        with:
+          path: ~/Documents/PowerShell/Modules/PSScriptAnalyzer
+          key: ${{ runner.os }}-psscriptanalyzer
+
+      - name: Install PSScriptAnalyzer
+        if: steps.cache-analyzer.outputs.cache-hit != 'true'
+        shell: pwsh
+        run: Install-Module PSScriptAnalyzer -Force -SkipPublisherCheck -Scope CurrentUser
+
+      - name: Run PSScriptAnalyzer
+        shell: pwsh
+        run: |
+          Import-Module PSScriptAnalyzer
+          $results = Invoke-ScriptAnalyzer -Path '${{ inputs.analyzer-path }}' -Recurse -Severity Warning, Error
+          $results | Format-Table -AutoSize | Out-String | Write-Host
+
+          $errors = $results | Where-Object Severity -eq 'Error'
+          if ($errors) {
+              Write-Error "PSScriptAnalyzer found $($errors.Count) error-level issue(s)."
+              exit 1
+          }
+
+  test:
+    name: Pester Tests
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Cache Pester module
+        id: cache-pester
+        uses: actions/cache@v4
+        with:
+          path: ~/Documents/PowerShell/Modules/Pester
+          key: ${{ runner.os }}-pester-${{ inputs.pester-version }}
+
+      - name: Install Pester
+        if: steps.cache-pester.outputs.cache-hit != 'true'
+        shell: pwsh
+        run: Install-Module Pester -MinimumVersion '${{ inputs.pester-version }}' -Force -SkipPublisherCheck -Scope CurrentUser
+
+      - name: Run Pester tests
+        shell: pwsh
+        run: |
+          Import-Module Pester -MinimumVersion '${{ inputs.pester-version }}'
+
+          $config = New-PesterConfiguration
+          $config.Run.Path = '${{ inputs.test-path }}'
+          $config.Run.Exit = $true
+          $config.Output.Verbosity = 'Detailed'
+          $config.TestResult.Enabled = $true
+          $config.TestResult.OutputFormat = 'NUnitXml'
+          $config.TestResult.OutputPath = 'TestResults.xml'
+
+          Invoke-Pester -Configuration $config
+
+      - name: Publish test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pester-test-results
+          path: TestResults.xml
+
+  smoke-test:
+    name: Smoke Test
+    if: ${{ inputs.run-smoke-test }}
+    needs: [lint, test]
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Smoke test - script -WhatIf
+        shell: pwsh
+        run: |
+          $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
+          $principal = [Security.Principal.WindowsPrincipal]::new($identity)
+          $isAdmin = $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+
+          if (-not $isAdmin) {
+              Write-Host "Skipping: ${{ inputs.smoke-test-script }} requires an elevated session (#requires -RunAsAdministrator) and this runner is not elevated."
+              return
+          }
+
+          & '${{ inputs.smoke-test-script }}' -WhatIf -Verbose
